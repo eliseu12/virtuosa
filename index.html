@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Virtuosa</title>
+  <link rel="icon" id="favicon"
+        href="https://live.staticflickr.com/65535/54443254301_a5da23a006_w.jpg"
+        sizes="300x300" type="image/jpeg">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .cover {
+      width: 100%; max-width: 300px;
+      margin-bottom: 20px;
+    }
+    .cover img {
+      width: 100%; border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5),
+                  0 0 20px #fff, 0 0 40px #fff;
+      transition: box-shadow .3s ease;
+    }
+    .cover img:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5),
+                  0 0 30px #fff, 0 0 60px #fff;
+    }
+    .player {
+      width: 100%; max-width: 500px;
+      background: #111; border-radius: 12px;
+      padding: 20px; display: flex;
+      flex-direction: column; align-items: center;
+      box-shadow: 0 4px 12px rgba(255,255,255,0.1);
+      position: relative;
+    }
+    .track-header {
+      display: flex; flex-direction: column;
+      width: 100%; margin-bottom: 15px;
+      text-align: center;
+    }
+    .track-title-container {
+      position: relative;
+    }
+    .track-title {
+      font-size: 20px; font-weight: bold;
+      white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; padding: 0 30px;
+    }
+    .album-title {
+      font-size: 14px; color: #aaa;
+      margin-top: 5px;
+    }
+    .menu-btn {
+      background: none; border: none; color: white;
+      font-size: 24px; cursor: pointer; padding: 5px;
+      position: absolute; right: 0; top: 0;
+    }
+    .menu {
+      position: absolute; background: #222;
+      border-radius: 8px; padding: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      z-index: 100; display: none;
+      right: 20px; top: 60px; max-width: 300px;
+    }
+    .menu-item {
+      padding: 8px 12px; cursor: pointer;
+      border-radius: 4px; display: flex;
+      align-items: center; gap: 8px;
+    }
+    .menu-item:hover { background: #444; }
+    .submenu {
+      display: none; padding-left: 15px;
+      border-left: 1px solid #444; margin-top: 5px;
+    }
+    .menu-item#indique-btn {
+      color: #25D366; /* Cor verde do WhatsApp */
+    }
+    .submenu-item {
+      padding: 6px 8px; cursor: pointer;
+      display: flex; align-items: center;
+    }
+    .submenu-item:hover { background: #333; }
+    .controls {
+      display: flex; gap: 20px;
+      align-items: center; justify-content: center;
+      margin-bottom: 15px;
+    }
+    .control-btn {
+      background: none; border: none;
+      width: 60px; height: 60px; cursor: pointer;
+      display: flex; align-items: center;
+      justify-content: center; border-radius: 50%;
+      outline: none; transition: box-shadow .2s, transform .2s;
+    }
+    .control-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 15px rgba(255,255,255,0.8);
+    }
+    .control-btn .material-icons {
+      font-size: 30px; color: #fff;
+    }
+    .progress-speed {
+      display: flex; align-items: center;
+      width: 100%; margin-top: 10px;
+    }
+    .progress-bar {
+      flex: 1; height: 6px; background: #333;
+      border-radius: 4px; cursor: pointer; overflow: hidden;
+    }
+    .progress {
+      height: 100%; background: #fff;
+      width: 0%; transition: width .2s linear;
+    }
+    .speed-control { margin-left: 10px; }
+    .speed-control select {
+      background: #111; border: 1px solid #444;
+      color: #fff; padding: 4px; border-radius: 4px;
+      cursor: pointer;
+    }
+    .time-info {
+      width: 100%; display: flex;
+      justify-content: space-between;
+      font-size: 12px; color: #aaa;
+      margin-top: 5px;
+    }
+    .playlist {
+      margin-top: 20px; width: 100%;
+      max-height: 200px; overflow-y: auto;
+      /* Estilização da barra de rolagem para Firefox */
+      scrollbar-width: thin;
+      scrollbar-color: #444 #1c1c1c;
+    }
+    .playlist-item {
+      padding: 10px; border-bottom: 1px solid #444;
+      cursor: pointer; color: #ccc;
+    }
+    .playlist-item.active {
+      background: #222; color: #fff;
+    }
+    .playlist-item:hover { background: #333; }
+
+    /* Compartilhamento */
+    .overlay, .share-dialog { display: none; }
+    .overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); z-index: 999;
+    }
+    .share-dialog {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222; padding: 20px;
+      border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      z-index: 1000; width: 90%; max-width: 400px;
+    }
+    .share-dialog h3 { margin-top: 0; color: #fff; }
+    .share-options {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin: 15px 0;
+    }
+    .share-option {
+      display: flex; flex-direction: column;
+      align-items: center; cursor: pointer;
+      color: #fff; text-decoration: none;
+      font-size: 12px; width: 60px;
+    }
+    .share-icon {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center;
+      justify-content: center; margin-bottom: 5px;
+      transition: transform 0.2s;
+    }
+    .share-icon:hover { transform: scale(1.1); }
+    .share-icon svg { width: 24px; height: 24px; fill: white; }
+    .whatsapp-icon { background-color: #25D366; }
+    .facebook-icon { background-color: #1877F2; }
+    .twitter-icon { background-color: #000; }
+    .email-icon { background-color: #EA4335; }
+    .link-icon { background-color: #5f6368; }
+    .share-link {
+      width: 100%; padding: 8px; background: #333;
+      border: none; border-radius: 4px; color: #fff;
+      margin-top: 10px;
+    }
+    .close-share {
+      position: absolute; top: 10px; right: 10px;
+      background: none; border: none; color: #aaa;
+      font-size: 20px; cursor: pointer;
+    }
+    /* Overlay e dialog de report */
+    .overlay#report-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 999;
+    }
+    .report-dialog {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      z-index: 1000;
+      width: 90%; max-width: 400px;
+    }
+    .report-form label {
+      display: flex; flex-direction: column;
+      color: #fff; margin-bottom: 10px;
+    }
+    .report-form input,
+    .report-form textarea {
+      padding: 8px; border: 1px solid #444;
+      border-radius: 4px; background: #111;
+      color: #fff; margin-top: 4px; resize: none;
+    }
+    .report-form button {
+      display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+      padding: 10px; background: #25D366;
+      color: #fff; border: none; border-radius: 4px;
+      cursor: pointer;
+    }
+    .close-report {
+      position: absolute; top: 10px; right: 10px;
+      background: none; border: none; color: #aaa;
+      font-size: 20px; cursor: pointer;
+    }
+
+    @media (max-width: 400px) {
+      .control-btn { width: 50px; height: 50px; }
+      .control-btn .material-icons { font-size: 24px; }
+      .track-title { font-size: 18px; }
+    }
+
+    /* === ESTILIZAÇÃO DA BARRA DE ROLAGEM === */
+    .playlist::-webkit-scrollbar {
+      width: 10px; /* Largura da barra de rolagem */
+    }
+
+    .playlist::-webkit-scrollbar-track {
+      background: #1c1c1c; /* Cor de fundo da trilha */
+      border-radius: 10px; /* Bordas arredondadas para a trilha */
+    }
+
+    .playlist::-webkit-scrollbar-thumb {
+      background-color: #444; /* Cor do "polegar" (a parte que você arrasta) */
+      border-radius: 10px; /* Bordas arredondadas para o polegar */
+      border: 2px solid #1c1c1c; /* Borda na cor da trilha para dar um efeito de espaçamento */
+    }
+
+    .playlist::-webkit-scrollbar-thumb:hover {
+      background-color: #555; /* Cor do polegar ao passar o mouse */
+    }
+    /* OBS: As regras para Firefox (scrollbar-width e scrollbar-color) 
+       foram adicionadas diretamente à classe .playlist acima. */
+    /* === FIM DA ESTILIZAÇÃO DA BARRA DE ROLAGEM === */
+  </style>
+
+  <svg style="display: none;">
+    <symbol id="whatsapp-icon" viewBox="0 0 24 24">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967
+        -.273-.099-.471-.148-.67.15-.197.297-.767.966
+        -.94 1.164-.173.199-.347.223-.644.075-.297-.15
+        -1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653
+        -2.059-.173-.297-.018-.458.13-.606.134-.133.298
+        -.347.446-.52.149-.174.198-.298.298-.497.099-.198
+        .05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207
+        -.242-.579-.487-.5-.669-.51-.173-.008-.371-.01
+        -.57-.01-.198 0-.52.074-.792.372-.272.297-1.04
+        1.016-1.04 2.479 0 1.462 1.065 2.875 1.213
+        3.074.149.198 2.096 3.2 5.077 4.487.709.306
+        1.262.489 1.694.625.712.227 1.36.195 1.871.118
+        .571-.085 1.758-.719 2.006-1.413.248-.694.248
+        -1.289.173-1.413-.074-.124-.272-.198-.57
+        -.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031
+        -1.378l-.361-.214-3.741.982.998-3.648-.235
+        -.374a9.86 9.86 0 01-1.51-5.26c.001-5.45
+        4.436-9.884 9.888-9.884 2.64 0 5.122 1.03
+        6.988 2.898a9.825 9.825 0 012.893 6.994c
+        -.003 5.45-4.437 9.884-9.885 9.884m8.413
+        -18.297A11.815 11.815 0 0012.05 0C5.495 0
+        .16 5.335.157 11.892c0 2.096.547 4.142
+        1.588 5.945L.057 24l6.305-1.654a11.882
+        11.882 0 005.683 1.448h.005c6.554 0
+        11.89-5.335 11.893-11.893a11.821
+        11.821 0 00-3.48-8.413z"/>
+    </symbol>
+    <symbol id="twitter-icon" viewBox="0 0 24 24"> <path d="M18.244 2.25h3.308l-7.227 8.26
+        8.502 11.24H16.17l-5.214-6.817L4.99
+        21.75H1.68l7.73-8.835L1.254 2.25H8.08
+        l4.713 6.231zm-1.161 17.52h1.833L7.084
+        4.126H5.117z"/>
+    </symbol>
+    <symbol id="facebook-icon" viewBox="0 0 24 24">
+      <path d="M22.675 0H1.325C.593 0 0 .593 0
+        1.325v21.351C0 23.407.593 24 1.325 24H12.82
+        v-9.294H9.692v-3.622h3.128V8.413c0-3.1
+        1.893-4.788 4.659-4.788 1.325 0 2.463.099
+        2.795.143v3.24l-1.918.001c-1.504 0-1.795
+        .715-1.795 1.763v2.313h3.587l-.467
+        3.622h-3.12V24h6.116c.73 0 1.323-.593
+        1.323-1.325V1.325C24 .593 23.407 0
+        22.675 0z"/>
+    </symbol>
+    <symbol id="email-icon" viewBox="0 0 24 24">
+      <path d="M20 4H4c-1.1 0-1.99.9-1.99
+        2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9
+        2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6
+        l8 5 8-5v2z"/>
+    </symbol>
+    <symbol id="link-icon" viewBox="0 0 24 24">
+      <path d="M3.9 12c0-1.71 1.39-3.1
+        3.1-3.1h4V7H7c-2.76 0-5 2.24-5
+        5s2.24 5 5 5h4v-1.9H7c-1.71 0
+        -3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9
+        -6h-4v1.9h4c1.71 0 3.1 1.39 3.1
+        3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76
+        0 5-2.24 5-5s-2.24-5-5-5z"/>
+    </symbol>
+  </svg>
+</head>
+<body>
+
+  <div class="cover">
+    <img id="cover-image"
+         src="https://live.staticflickr.com/65535/54555215672_d6b9912a8a_n.jpg"
+         alt="Capa do Álbum" />
+  </div>
+
+  <div class="player">
+    <div class="track-header">
+      <div class="track-title-container">
+        <div class="track-title" id="track-title">
+          Selecione um Capítulo
+        </div>
+        <div class="album-title" id="album-title">
+          Virtuosa
+        </div>
+        <button class="menu-btn" id="menu-btn">⋮</button>
+      </div>
+      <div class="menu" id="menu">
+        <div class="menu-item" id="timer-btn">
+          <span class="material-icons">brightness_3</span>
+          Temporizador
+        </div>
+        <div class="submenu" id="timer-submenu">
+          <div class="submenu-item" data-time="300">5 minutos</div>
+          <div class="submenu-item" data-time="600">10 minutos</div>
+          <div class="submenu-item" data-time="900">15 minutos</div>
+          <div class="submenu-item" data-time="1800">30 minutos</div>
+          <div class="submenu-item" data-time="3600">1 hora</div>
+          <div class="submenu-item" data-time="0">
+            <span class="material-icons">cancel</span>
+            Desativar
+          </div>
+        </div>
+        <div class="menu-item" id="buy-book-btn">
+          <span class="material-icons">shopping_cart</span>
+          Comprar o Livro
+        </div>
+        <div class="menu-item" id="share-btn">
+          <span class="material-icons">share</span>
+          Compartilhar Capítulo
+        </div>
+        <div class="menu-item" id="indique-btn">
+          <span class="material-icons">thumb_up</span>
+          Indique o Arauto+
+        </div>
+        <div class="menu-item" id="report-btn">
+          <span class="material-icons">report_problem</span>
+          Reportar Problema
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="prev-btn" class="control-btn" title="Anterior">
+        <span class="material-icons">skip_previous</span>
+      </button>
+      <button id="play-btn" class="control-btn" title="Play/Pause">
+        <span class="material-icons" id="play-icon">play_arrow</span>
+        <span class="material-icons" id="pause-icon" style="display:none">
+          pause
+        </span>
+      </button>
+      <button id="next-btn" class="control-btn" title="Próxima">
+        <span class="material-icons">skip_next</span>
+      </button>
+    </div>
+
+    <div class="progress-speed">
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress" id="progress"></div>
+      </div>
+      <div class="speed-control">
+        <select id="speed-select">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="time-info">
+      <span id="current-time">00:00</span>
+      <span id="total-time">00:00</span>
+    </div>
+
+    <audio id="audio-player"
+           preload="metadata"
+           crossorigin="anonymous"></audio>
+
+    <div class="playlist" id="playlist">
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/001%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Prefa%CC%81cio.mp3" data-title="1. Prefácio">1. Prefácio</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/002%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%201.mp3" data-title="2. O que é virtude?">2. O que é virtude?</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/003%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%202.mp3" data-title="3. Diligência">3. Diligência</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/004%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%203.mp3" data-title="4. Alegria">4. Alegria</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/005%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%204.mp3" data-title="5. Contentamento">5. Contentamento</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/006%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%205.mp3" data-title="6. Prudência">6. Prudência</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/007%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%206.mp3" data-title="7. Sabedoria">7. Sabedoria</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/008%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%207.mp3" data-title="8. Humildade">8. Humildade</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/009%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%208.mp3" data-title="9. Coragem">9. Coragem</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/010%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%209.mp3" data-title="10. Bondade">10. Bondade</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/011%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%2010.mp3" data-title="11. Lealdade">11. Lealdade</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/012%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%2011.mp3" data-title="12. Castidade">12. Castidade</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/013%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%2012.mp3" data-title="13. Modéstia">13. Modéstia</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/014%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%2013.mp3" data-title="14. Doméstica">14. Doméstica</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/015%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%2014.mp3" data-title="15. Gratidão">15. Gratidão</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/016%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Capi%CC%81tulo%2015.mp3" data-title="16. Paciência">16. Paciência</div>
+        <div class="playlist-item" data-src="https://archive.org/download/010-virtuosa-nancy-wilson-capitulo-9/017%20-%20Virtuosa%20-%20Nancy%20Wilson%20%EF%BD%9C%20Conclusa%CC%83o.mp3" data-title="17. Conclusão">17. Conclusão</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="share-overlay"></div>
+  <div class="share-dialog" id="share-dialog">
+    <button class="close-share" id="close-share">&times;</button>
+    <h3>Compartilhar Capítulo</h3>
+    <div class="share-options" id="share-options"></div>
+    <input type="text" class="share-link" id="share-link" readonly>
+    <button class="menu-item" id="copy-link">
+      <span class="material-icons">content_copy</span>
+      Copiar Link
+    </button>
+  </div>
+
+  <div class="overlay" id="report-overlay"></div>
+  <div class="report-dialog" id="report-dialog">
+    <button class="close-report" id="close-report">&times;</button>
+    <h3>Reportar Problema</h3>
+    <form id="report-form" class="report-form">
+      <label>Referência:
+        <input type="text" id="report-ref" value="Arauto" readonly>
+      </label>
+      <label>Livro:
+        <input type="text" id="report-book" value="Virtuosa" readonly>
+      </label>
+      <label>Nome:
+        <input type="text" id="report-name" required>
+      </label>
+      <label>Email:
+        <input type="email" id="report-email" required>
+      </label>
+      <label>Telefone:
+        <input type="tel" id="report-phone">
+      </label>
+      <label>Mensagem:
+        <textarea id="report-message" rows="4" required></textarea>
+      </label>
+      <button type="submit"><span class="material-icons">send</span> Enviar</button>
+    </form>
+  </div>
+
+  <script>
+    const audioPlayer    = document.getElementById('audio-player'),
+          playBtn        = document.getElementById('play-btn'),
+          prevBtn        = document.getElementById('prev-btn'),
+          nextBtn        = document.getElementById('next-btn'),
+          playIcon       = document.getElementById('play-icon'),
+          pauseIcon      = document.getElementById('pause-icon'),
+          progressBar    = document.getElementById('progress-bar'),
+          progress       = document.getElementById('progress'),
+          currentTimeEl  = document.getElementById('current-time'),
+          totalTimeEl    = document.getElementById('total-time'),
+          speedSelect    = document.getElementById('speed-select'),
+          tracks         = Array.from(document.querySelectorAll('.playlist-item')),
+          menuBtn        = document.getElementById('menu-btn'),
+          menu           = document.getElementById('menu'),
+          timerBtn       = document.getElementById('timer-btn'),
+          timerSubmenu   = document.getElementById('timer-submenu'),
+          shareBtn       = document.getElementById('share-btn'),
+          shareDialog    = document.getElementById('share-dialog'),
+          shareOverlay   = document.getElementById('share-overlay'),
+          closeShare     = document.getElementById('close-share'),
+          shareLink      = document.getElementById('share-link'),
+          copyLinkBtn    = document.getElementById('copy-link'),
+          shareOptions   = document.getElementById('share-options'),
+          coverImage     = document.getElementById('cover-image');
+
+    let currentIndex = 0,
+        isPlaying    = false,
+        timerId      = null,
+        tempoParaRetomar = null;
+
+    function formatTime(sec) {
+      const m = Math.floor(sec/60),
+            s = Math.floor(sec%60);
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function updateMetadata() {
+      if (tracks.length === 0 || !tracks[currentIndex]) {
+        document.getElementById('track-title').textContent = "Nenhuma faixa selecionada";
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = null;
+            navigator.mediaSession.playbackState = "none";
+        }
+        return;
+      }
+      const title = tracks[currentIndex].dataset.title;
+      document.title = `${title} – Virtuosa`;
+      audioPlayer.playbackRate = parseFloat(speedSelect.value);
+      document.getElementById('track-title').textContent = title;
+
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title,
+          artist: 'Virtuosa',
+          artwork: [{ src: coverImage.src, sizes:'300x300', type:'image/jpeg' }]
+        });
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        navigator.mediaSession.setActionHandler('play', playPause);
+        navigator.mediaSession.setActionHandler('pause', playPause);
+        navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+        navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+      }
+    }
+
+    function loadTrack(i) {
+      let trackIndex = parseInt(i, 10); 
+      if (isNaN(trackIndex) || tracks.length === 0 || trackIndex < 0 || trackIndex >= tracks.length) {
+        console.warn("Índice de faixa inválido ou lista de faixas vazia. Índice:", i, "Tentando faixa 0.");
+        if (tracks.length > 0) {
+            trackIndex = 0; 
+        } else {
+            document.getElementById('track-title').textContent = "Playlist vazia.";
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = null;
+                navigator.mediaSession.playbackState = "none";
+            }
+            return; 
+        }
+      }
+     
+      tracks.forEach(t => t.classList.remove('active'));
+      tracks[trackIndex].classList.add('active');
+      currentIndex = trackIndex;
+      localStorage.setItem('arauto_lastTrackIndex', currentIndex);
+     
+      if (audioPlayer.currentSrc !== tracks[currentIndex].dataset.src) {
+          audioPlayer.src = tracks[currentIndex].dataset.src;
+          audioPlayer.load();
+      } else {
+          updateMetadata();
+      }
+      if (timerId) { clearTimeout(timerId); timerId = null; }
+    }
+
+    function playPause() {
+      if (tracks.length === 0) {
+        return;
+      }
+      if (!audioPlayer.currentSrc && tracks.length > 0) {
+         loadTrack(currentIndex); 
+      }
+     
+      if (audioPlayer.paused) {
+        const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error("Erro ao executar play():", error);
+          });
+        }
+      } else {
+        audioPlayer.pause();
+      }
+    }
+
+    function prevTrack() {
+      if (tracks.length === 0) return;
+      let newIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+      loadTrack(newIndex);
+      audioPlayer.play().catch(e => console.error("Erro ao tocar faixa anterior:", e));
+    }
+
+    function nextTrack() {
+      if (tracks.length === 0) return;
+      let newIndex = (currentIndex + 1) % tracks.length;
+      loadTrack(newIndex);
+      audioPlayer.play().catch(e => console.error("Erro ao tocar próxima faixa:", e));
+    }
+
+    audioPlayer.addEventListener('loadedmetadata', () => {
+      if (!audioPlayer.duration || isNaN(audioPlayer.duration)) {
+        totalTimeEl.textContent = "00:00";
+        return;
+      }
+      totalTimeEl.textContent = formatTime(audioPlayer.duration);
+      updateMetadata(); 
+      if (tempoParaRetomar && audioPlayer.seekable && audioPlayer.seekable.length > 0) { 
+        const seekTime = Math.min(tempoParaRetomar, audioPlayer.duration);
+        if (!isNaN(seekTime)) {
+             audioPlayer.currentTime = seekTime;
+        }
+        tempoParaRetomar = null;
+      }
+    });
+    audioPlayer.addEventListener('timeupdate', () => {
+      if (!audioPlayer.duration || isNaN(audioPlayer.duration)) return;
+      progress.style.width = `${(audioPlayer.currentTime/audioPlayer.duration)*100}%`;
+      currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+      if (isPlaying && audioPlayer.currentTime > 0 && !isNaN(audioPlayer.currentTime)) { 
+        localStorage.setItem('arauto_lastTrackTime', audioPlayer.currentTime);
+      }
+    });
+    audioPlayer.addEventListener('play', () => {
+      isPlaying = true;
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = 'inline';
+      updateMetadata();
+    });
+    audioPlayer.addEventListener('pause', () => {
+      isPlaying = false;
+      playIcon.style.display = 'inline';
+      pauseIcon.style.display = 'none';
+      updateMetadata();
+    });
+    audioPlayer.addEventListener('ended', nextTrack);
+    audioPlayer.addEventListener('error', (e) => {
+        console.error("Erro no elemento de áudio:", audioPlayer.error);
+        let errorMsg = "Ocorreu um erro com o áudio.";
+        if (audioPlayer.error) {
+            switch (audioPlayer.error.code) {
+                case MediaError.MEDIA_ERR_ABORTED: errorMsg = "A reprodução do áudio foi abortada."; break;
+                case MediaError.MEDIA_ERR_NETWORK: errorMsg = "Ocorreu um erro de rede ao carregar o áudio."; break;
+                case MediaError.MEDIA_ERR_DECODE: errorMsg = "Ocorreu um erro ao decodificar o áudio."; break;
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED: errorMsg = "O formato do áudio não é suportado ou o áudio não pode ser encontrado."; break;
+            }
+        }
+        isPlaying = false; 
+        playIcon.style.display = 'inline';
+        pauseIcon.style.display = 'none';
+        updateMetadata();
+    });
+
+    playBtn.addEventListener('click', playPause);
+    prevBtn.addEventListener('click', prevTrack);
+    nextBtn.addEventListener('click', nextTrack);
+
+    progressBar.addEventListener('click', e => {
+      if (!audioPlayer.duration || isNaN(audioPlayer.duration)) return;
+      const rect = progressBar.getBoundingClientRect();
+      audioPlayer.currentTime = ((e.clientX - rect.left)/rect.width)*audioPlayer.duration;
+    });
+    speedSelect.addEventListener('change', updateMetadata);
+
+    tracks.forEach((el, idx) =>
+      el.addEventListener('click', () => {
+        loadTrack(idx);
+        playPause();
+      })
+    );
+
+    timerBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      timerSubmenu.style.display = timerSubmenu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.querySelectorAll('#timer-submenu .submenu-item').forEach(item => {
+      item.addEventListener('click', e => {
+        e.stopPropagation();
+        const secs = parseInt(item.dataset.time, 10), label = item.textContent.trim();
+        if (secs > 0) {
+          clearTimeout(timerId);
+          timerId = setTimeout(() => {
+            audioPlayer.pause();
+            alert('Temporizador concluído – reprodução pausada');
+            timerId = null;
+          }, secs*1000);
+          alert(`Temporizador definido para ${label}`);
+        } else {
+          clearTimeout(timerId);
+          timerId = null;
+          alert('Temporizador desativado');
+        }
+        menu.style.display = 'none';
+        timerSubmenu.style.display = 'none';
+      });
+    });
+   
+    const buyBookBtn = document.getElementById('buy-book-btn');
+    if (buyBookBtn) {
+      buyBookBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.style.display = 'none';
+        const bookUrl = 'https://amzn.to/3StNwkY'; 
+        window.open(bookUrl, '_blank');
+      });
+    }
+
+    const indiqueBtn = document.getElementById('indique-btn');
+    if (indiqueBtn) {
+        indiqueBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.style.display = 'none';
+            const texto = `Seu amigo te indicou para conhecer o *Arauto Audiobook*! ${String.fromCodePoint(0x1F3A7)}
+           
+*TORNE-SE MEMBRO VITALÍCIO* e garanta sua edificação com os *melhores audiobooks Cristãos*!
+               
+${String.fromCodePoint(0x1F449)} Clique no link e descubra como! ${String.fromCodePoint(0x1F525)}
+
+https://arautomais.github.io/Membro-vitalicio-ilimitado/`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+        });
+    }
+
+    menuBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => {
+      menu.style.display = 'none';
+      timerSubmenu.style.display = 'none';
+    });
+
+    function showShareDialog() {
+      if (tracks.length === 0 || !tracks[currentIndex]) return;
+      const track = tracks[currentIndex];
+      const mensagemCompleta = `*Você nem sabe!* 💖
+
+Estava ouvindo o capítulo "${track.dataset.title}" no *Aplicativo de AudioBooks-Arauto* e imediatamente pensei em você! ✨
+
+*Vou deixar o link aqui pra você ouvir também*:
+${track.dataset.src}
+
+_Depois me conta o que achou!_ 🤗
+
+
+(*P.S.: Tem muitas outras pérolas esperando por você em*: https://arautomais.github.io/Membro-vitalicio-ilimitado/)`;
+
+      shareLink.value = mensagemCompleta;
+      shareOverlay.style.display = 'block';
+      shareDialog.style.display = 'block';
+      shareOptions.innerHTML = '';
+
+      if (navigator.share) {
+        const ns = document.createElement('div');
+        ns.className = 'share-option';
+        ns.innerHTML = `
+          <div class="share-icon link-icon"><svg><use href="#link-icon"/></svg></div>
+          <span>Compartilhar Capítulo</span>
+        `;
+        ns.addEventListener('click', async () => {
+          try {
+            await navigator.share({
+              title: `Ouça: ${track.dataset.title}`,
+              text: `Estou ouvindo este capítulo no Aplicativo Arauto e pensei em você! 💖`,
+              url: track.dataset.src
+            });
+            closeShareDialog();
+          } catch {}
+        });
+        shareOptions.appendChild(ns);
+      }
+
+      const socials = [
+        {
+          name:'WhatsApp', icon:'whatsapp-icon',
+          url:`https://wa.me/?text=${encodeURIComponent(mensagemCompleta)}`
+        },
+        {
+          name:'Facebook', icon:'facebook-icon',
+          url:`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent('Estou ouvindo no Arauto e pensei em você! ❤️ ' + track.dataset.title)}&u=${encodeURIComponent(track.dataset.src)}`
+        },
+        {
+          name:'X (Twitter)', icon:'twitter-icon',
+          url:`https://twitter.com/intent/tweet?text=${encodeURIComponent('Acabei de encontrar essa joia no @ArautoApp e pensei em você! ❤️ Ouça "' + track.dataset.title + '" aqui: ')}&url=${encodeURIComponent(track.dataset.src)}`
+        },
+        {
+          name:'Email', icon:'email-icon',
+          url:`mailto:?subject=${encodeURIComponent('Pensei em você! ❤️ ' + track.dataset.title)}&body=${encodeURIComponent(mensagemCompleta)}`
+        }
+      ];
+     
+      socials.forEach(s => {
+        const o = document.createElement('a');
+        o.className = 'share-option';
+        o.href = s.url;
+        o.target = '_blank';
+        o.rel = 'noopener noreferrer';
+        o.innerHTML = `
+          <div class="share-icon ${s.icon}"><svg><use href="#${s.icon}"/></svg></div>
+          <span>${s.name}</span>
+        `;
+        shareOptions.appendChild(o);
+      });
+    }
+
+    function closeShareDialog() {
+      shareOverlay.style.display = 'none';
+      shareDialog.style.display = 'none';
+    }
+
+    shareBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (audioPlayer.src && tracks.length > 0) showShareDialog();
+      menu.style.display = 'none';
+    });
+
+    closeShare.addEventListener('click', closeShareDialog);
+    shareOverlay.addEventListener('click', closeShareDialog);
+
+    copyLinkBtn.addEventListener('click', () => {
+      shareLink.select();
+      try {
+        document.execCommand('copy');
+        const orig = copyLinkBtn.innerHTML;
+        copyLinkBtn.innerHTML = '<span class="material-icons">check</span> Mensagem copiada!';
+        setTimeout(() => copyLinkBtn.innerHTML = orig, 2000);
+      } catch (err) {
+        console.error('Falha ao copiar:', err);
+      }
+    });
+
+    const reportBtn      = document.getElementById('report-btn');
+    const reportOverlay  = document.getElementById('report-overlay');
+    const reportDialog   = document.getElementById('report-dialog');
+    const closeReport    = document.getElementById('close-report');
+    const reportForm     = document.getElementById('report-form');
+
+    if (reportBtn) {
+        reportBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          reportOverlay.style.display = 'block';
+          reportDialog.style.display  = 'block';
+          menu.style.display          = 'none';
+        });
+    }
+    if (closeReport) {
+        closeReport.addEventListener('click', () => {
+          reportOverlay.style.display = 'none';
+          reportDialog.style.display  = 'none';
+        });
+    }
+    if (reportOverlay) {
+        reportOverlay.addEventListener('click', () => {
+          reportOverlay.style.display = 'none';
+          reportDialog.style.display  = 'none';
+        });
+    }
+    if (reportForm) {
+       reportForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const supportEmail = 'suportearauto@gmail.com';
+        const reference = document.getElementById('report-ref').value;
+        const book      = document.getElementById('report-book').value;
+        const name      = document.getElementById('report-name').value.trim();
+        const email     = document.getElementById('report-email').value.trim();
+        const phone     = document.getElementById('report-phone').value.trim();
+        const message   = document.getElementById('report-message').value.trim();
+        const subject = encodeURIComponent(`Problema no player – ${reference} / ${book}`);
+        const body = encodeURIComponent(`Referência: ${reference}\nLivro: ${book}\nNome: ${name}\nEmail: ${email}\nTelefone: ${phone}\n\n${message}`);
+        const mailtoLink = `mailto:${supportEmail}?subject=${subject}&body=${body}`;
+        window.open(mailtoLink);
+        reportOverlay.style.display = 'none';
+        reportDialog.style.display  = 'none';
+        reportForm.reset();
+       });
+    }
+   
+    function iniciarPlayer() {
+        const indiceSalvoStr = localStorage.getItem('arauto_lastTrackIndex');
+        const tempoSalvoStr = localStorage.getItem('arauto_lastTrackTime');
+        let indiceFinal = 0; 
+
+        if (indiceSalvoStr !== null) {
+            const indiceSalvoNum = parseInt(indiceSalvoStr, 10);
+            if (!isNaN(indiceSalvoNum) && indiceSalvoNum >= 0 && indiceSalvoNum < tracks.length) {
+                indiceFinal = indiceSalvoNum;
+                if (tempoSalvoStr) {
+                    const tempoSalvoNum = parseFloat(tempoSalvoStr);
+                    if(!isNaN(tempoSalvoNum)) {
+                       tempoParaRetomar = tempoSalvoNum;
+                    }
+                }
+            } else {
+              localStorage.removeItem('arauto_lastTrackIndex');
+              localStorage.removeItem('arauto_lastTrackTime');
+            }
+        }
+       
+        if (tracks.length > 0) {
+            loadTrack(indiceFinal); 
+        } else {
+            document.getElementById('track-title').textContent = "Nenhuma faixa na playlist";
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = null;
+                navigator.mediaSession.playbackState = "none";
+            }
+        }
+    }
+   
+    iniciarPlayer();
+
+    // Registro do Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/service-worker.js', { scope: '/' })
+        .then(() => console.log('Service Worker registrado com sucesso!'))
+        .catch(err => console.error('Erro ao registrar SW:', err));
+    }
+  </script>
+</body>
+</html>
